@@ -111,6 +111,48 @@ app.get('/', (req, res) => {
   res.send('Webhook do WhatsApp da gráfica está no ar.');
 });
 
+// 6) Envia mensagem de resposta via WhatsApp Cloud API.
+//    Chamado pela tarefa agendada depois que a Helena decide o que responder.
+app.post('/send', async (req, res) => {
+  const token = req.query.token;
+  if (token !== ADMIN_TOKEN) return res.sendStatus(401);
+
+  const { to, text } = req.body || {};
+  if (!to || !text) return res.status(400).json({ error: 'Faltam "to" e "text" no corpo.' });
+
+  const waToken = process.env.WHATSAPP_TOKEN;
+  const phoneNumberId = process.env.PHONE_NUMBER_ID;
+  if (!waToken || !phoneNumberId) {
+    return res.status(500).json({ error: 'WHATSAPP_TOKEN ou PHONE_NUMBER_ID não configurados no servidor.' });
+  }
+
+  try {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${waToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'text',
+        text: { body: text },
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      console.error('Falha ao enviar:', JSON.stringify(data));
+      return res.status(r.status).json(data);
+    }
+    console.log(`Mensagem enviada para ${to}: "${text}"`);
+    res.json(data);
+  } catch (e) {
+    console.error('Erro ao enviar:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // 5) Histórico cru de tudo que chegou em /webhook — para depuração.
 app.get('/debug', (req, res) => {
   const token = req.query.token;

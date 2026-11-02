@@ -9,6 +9,7 @@ simples, para a equipe de Atendimento (Painel Interno) ler depois.
 2. `POST /webhook` — recebe cada mensagem nova em tempo real e guarda em `messages.json`.
 3. `GET /pending?token=SEU_ADMIN_TOKEN` — lista as mensagens pendentes (é isso que eu leio pra alimentar o Painel).
 4. `POST /clear?token=SEU_ADMIN_TOKEN` — limpa a fila depois de processada.
+5. `POST /send?token=SEU_ADMIN_TOKEN` — manda uma resposta de verdade pro cliente (corpo: `{"to":"5511...", "text":"..."}`). É isso que a Helena usa pra responder.
 
 **Limitação importante:** no plano gratuito da maioria dos provedores, o arquivo
 `messages.json` pode ser perdido se o servidor reiniciar ou for reimplantado.
@@ -28,6 +29,8 @@ este arquivo já funciona.
 5. Em "Environment Variables", adicione:
    - `VERIFY_TOKEN` → invente uma string qualquer (ex: `graficainovax2026`). Você vai usar esse mesmo valor na configuração do webhook na Meta.
    - `ADMIN_TOKEN` → invente outra string, mais longa e difícil (ex: gere uma em https://1password.com/password-generator). Guarde ela — é a senha que protege sua fila de mensagens.
+   - `WHATSAPP_TOKEN` → o token **permanente** gerado no Meta Business Suite (System User → Admin → Gerar token, expiração "Nunca"). Nunca compartilhe esse token em chat — só cole direto aqui no Render.
+   - `PHONE_NUMBER_ID` → `1334839923056970` (o phone_number_id do seu número de teste, visto no payload do webhook).
 6. Deploy. Ao terminar, o Render te dá uma URL pública, tipo `https://grafica-whatsapp.onrender.com`.
 
 ## Configurando na Meta for Developers
