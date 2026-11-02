@@ -26,6 +26,22 @@ function writeStore(messages) {
   fs.writeFileSync(STORE_PATH, JSON.stringify(messages, null, 2));
 }
 
+const RAW_LOG_PATH = path.join(__dirname, 'raw-log.json');
+
+function appendRawLog(entry) {
+  let log = [];
+  try { log = JSON.parse(fs.readFileSync(RAW_LOG_PATH, 'utf8')); } catch (e) { log = []; }
+  log.push(entry);
+  if (log.length > 50) log = log.slice(-50); // guarda só os últimos 50
+  fs.writeFileSync(RAW_LOG_PATH, JSON.stringify(log, null, 2));
+}
+
+// Loga toda requisição que chega — útil pra depurar se a Meta está batendo aqui.
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // 1) Verificação do webhook — a Meta chama isso uma vez ao configurar.
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
@@ -40,10 +56,14 @@ app.get('/webhook', (req, res) => {
 
 // 2) Mensagens novas chegam aqui via POST, em tempo real.
 app.post('/webhook', (req, res) => {
+  appendRawLog({ recebidoEm: new Date().toISOString(), body: req.body });
+
   const entry = req.body.entry && req.body.entry[0];
   const change = entry && entry.changes && entry.changes[0];
   const value = change && change.value;
   const messages = value && value.messages;
+
+  console.log('POST /webhook recebido:', JSON.stringify(req.body));
 
   if (messages && messages.length > 0) {
     const contacts = value.contacts || [];
@@ -89,6 +109,17 @@ app.post('/clear', (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('Webhook do WhatsApp da gráfica está no ar.');
+});
+
+// 5) Histórico cru de tudo que chegou em /webhook — para depuração.
+app.get('/debug', (req, res) => {
+  const token = req.query.token;
+  if (token !== ADMIN_TOKEN) return res.sendStatus(401);
+  try {
+    res.json(JSON.parse(fs.readFileSync(RAW_LOG_PATH, 'utf8')));
+  } catch (e) {
+    res.json([]);
+  }
 });
 
 const PORT = process.env.PORT || 3000;
