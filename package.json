@@ -1,0 +1,12 @@
+{
+  "name": "whatsapp-webhook",
+  "version": "1.0.0",
+  "description": "Recebe mensagens do WhatsApp Business Cloud API e guarda numa fila para o Painel da gráfica",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
